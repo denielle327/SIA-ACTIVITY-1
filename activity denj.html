@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Echo Garden Prototype</title>
+<style>
+body{
+    margin:0;
+    background:#111;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+}
+canvas{
+    display:block;
+    margin:auto;
+    background:#1b1b1b;
+    border:3px solid #555;
+}
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:20px;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+Score: <span id="score">0</span>
+</div>
+
+<canvas id="game" width="800" height="500"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const keys = {};
+
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+const player={
+    x:100,
+    y:250,
+    size:20,
+    speed:3
+};
+
+let score=0;
+
+let recording=[];
+let ghosts=[];
+
+let crystal=spawnCrystal();
+
+function spawnCrystal(){
+    return{
+        x:Math.random()*760+20,
+        y:Math.random()*460+20,
+        size:12
+    };
+}
+
+function distance(a,b){
+    return Math.hypot(a.x-b.x,a.y-b.y);
+}
+
+setInterval(()=>{
+
+    ghosts.push({
+        x:100,
+        y:250,
+        frame:0,
+        path:[...recording]
+    });
+
+    recording=[];
+
+},5000);
+
+function update(){
+
+    let dx=0;
+    let dy=0;
+
+    if(keys["ArrowLeft"]||keys["a"]) dx=-1;
+    if(keys["ArrowRight"]||keys["d"]) dx=1;
+    if(keys["ArrowUp"]||keys["w"]) dy=-1;
+    if(keys["ArrowDown"]||keys["s"]) dy=1;
+
+    player.x+=dx*player.speed;
+    player.y+=dy*player.speed;
+
+    player.x=Math.max(0,Math.min(780,player.x));
+    player.y=Math.max(0,Math.min(480,player.y));
+
+    recording.push({dx,dy});
+
+    ghosts.forEach(g=>{
+
+        if(g.frame<g.path.length){
+
+            g.x+=g.path[g.frame].dx*player.speed;
+            g.y+=g.path[g.frame].dy*player.speed;
+
+            g.frame++;
+        }
+
+    });
+
+    if(distance(player,crystal)<20){
+        score++;
+        crystal=spawnCrystal();
+    }
+
+    ghosts.forEach(g=>{
+        if(distance(g,crystal)<20){
+            score++;
+            crystal=spawnCrystal();
+        }
+    });
+
+    document.getElementById("score").textContent=score;
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,800,500);
+
+   function drawBurger(x, y) {
+    // Top bun
+    ctx.fillStyle = "#D9A55A";
+    ctx.beginPath();
+    ctx.arc(x, y - 4, 12, Math.PI, 0);
+    ctx.fill();
+
+    // Lettuce
+    ctx.fillStyle = "#4CAF50";
+    ctx.fillRect(x - 12, y - 2, 24, 3);
+
+    // Patty
+    ctx.fillStyle = "#5A3825";
+    ctx.fillRect(x - 12, y + 1, 24, 5);
+
+    // Bottom bun
+    ctx.fillStyle = "#D9A55A";
+    ctx.fillRect(x - 12, y + 6, 24, 6);
+}
+
+drawBurger(crystal.x, crystal.y);
+    ghosts.forEach(g=>{
+        ctx.fillStyle="rgba(255,255,255,.35)";
+        ctx.fillRect(g.x,g.y,20,20);
+    });
+
+    ctx.fillStyle="#33aaff";
+    ctx.fillRect(player.x,player.y,20,20);
+
+    ctx.fillStyle="white";
+    ctx.font="16px Arial";
+    ctx.fillText("Move: WASD or Arrow Keys",10,490);
+}
+
+function gameLoop(){
+
+    update();
+    draw();
+
+    requestAnimationFrame(gameLoop);
+
+}
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
